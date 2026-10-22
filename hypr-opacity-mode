@@ -1,0 +1,36 @@
+#!/usr/bin/env sh
+set -eu
+
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}"
+state_file="$state_dir/hypr-opacity-mode"
+mkdir -p "$state_dir"
+
+current="normal"
+if [ -f "$state_file" ]; then
+    current="$(cat "$state_file")"
+fi
+
+case "${1:-toggle}" in
+    normal) next="normal" ;;
+    transparent) next="transparent" ;;
+    toggle)
+        if [ "$current" = "transparent" ]; then next="normal"; else next="transparent"; fi
+        ;;
+    *)
+        printf 'usage: hypr-opacity-mode [toggle|normal|transparent]\n' >&2
+        exit 2
+        ;;
+esac
+
+printf '%s\n' "$next" > "$state_file"
+
+if [ "$next" = "transparent" ]; then
+    /usr/bin/hyprctl eval 'hl.config({decoration = {active_opacity = 0.85, inactive_opacity = 0.75}})' >/dev/null 2>&1 || true
+else
+    /usr/bin/hyprctl eval 'hl.config({decoration = {active_opacity = 1.0, inactive_opacity = 1.0}})' >/dev/null 2>&1 || true
+fi
+
+if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Hypr opacity mode" "$next" 2>/dev/null || true
+fi
+printf 'Hypr opacity mode: %s\n' "$next"
